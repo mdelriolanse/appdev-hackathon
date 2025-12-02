@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 import db
-from routes import fact_checking, journal_entry, classification
-
+from routes import  journal_entry
+#from routes import fact_checking, classification
 app = FastAPI()
 
 app.add_middleware(
@@ -15,5 +15,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(fact_checking.router)  # /fact-check
+# app.include_router(fact_checking.router)  # /fact-check
 app.include_router(journal_entry.router)
