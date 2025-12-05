@@ -22,14 +22,17 @@ struct CategoryBlocksView: View {
                     emptyState
                 } else {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 12) {
-                        ForEach(Array(categoryCounts.sorted { $0.value > $1.value }), id: \.key) { category, count in
+                        ForEach(Array(categoryCounts.sorted { $0.value > $1.value }.enumerated()), id: \.element.key) { index, element in
+                            let (category, count) = element
                             NavigationLink(destination: CategoryEntryListView(category: category, allEntries: viewModel.entries)) {
                                 CategoryBlock(category: category, count: count, total: categoryCounts.values.reduce(0, +))
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .buttonStyle(ScaleButtonStyle())
+                            .transition(.scale.combined(with: .opacity))
                         }
                     }
                     .padding(20)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: categoryCounts)
                 }
             }
         }
@@ -92,16 +95,18 @@ struct CategoryBlock: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            Text(category)
-                .font(.headline)
+            Text(category.capitalized)
+                .font(.system(size: 18, weight: .bold))
                 .foregroundColor(CandidColors.text)
                 .multilineTextAlignment(.center)
-            Text("\(count)")
-                .font(.caption)
+            
+            Text("\(count) entries")
+                .font(.system(size: 14, weight: .medium))
                 .foregroundColor(CandidColors.secondaryText)
         }
         .frame(width: size, height: size)
-        .background(CandidColors.secondaryBackground)
+        .background(CandidColors.cardBackground)
         .cornerRadius(12)
+        .shadow(color: CandidShadows.card.color, radius: CandidShadows.card.radius, x: CandidShadows.card.x, y: CandidShadows.card.y)
     }
 }

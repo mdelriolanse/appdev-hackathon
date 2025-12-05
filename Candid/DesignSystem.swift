@@ -16,8 +16,13 @@ struct CandidColors {
 
 struct CandidTypography {
     static let largeTitleSize: CGFloat = 28
+    static let largeTitleWeight: Font.Weight = .bold
+    
     static let bodySize: CGFloat = 16
+    static let bodyWeight: Font.Weight = .regular
+    
     static let captionSize: CGFloat = 14
+    static let captionWeight: Font.Weight = .medium
 }
 
 struct CandidLayout {
@@ -25,6 +30,42 @@ struct CandidLayout {
     static let verticalSpacing: CGFloat = 12
     static let cornerRadius: CGFloat = 12
     static let borderWidth: CGFloat = 1
+}
+
+struct CandidShadows {
+    static let card = CandidShadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+}
+
+struct CandidShadow {
+    let color: Color
+    let radius: CGFloat
+    let x: CGFloat
+    let y: CGFloat
+}
+
+// MARK: - View Modifiers
+
+struct CardStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(CandidColors.cardBackground)
+            .cornerRadius(CandidLayout.cornerRadius)
+            .shadow(color: CandidShadows.card.color, radius: CandidShadows.card.radius, x: CandidShadows.card.x, y: CandidShadows.card.y)
+    }
+}
+
+extension View {
+    func cardStyle() -> some View {
+        modifier(CardStyle())
+    }
+}
+
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
 }
 
 extension Color {

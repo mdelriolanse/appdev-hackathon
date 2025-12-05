@@ -59,20 +59,35 @@ class NewEntryViewModel: ObservableObject {
         
         let previousLine = String(lines[lines.count - 2])
         
-        // Check for numbered list pattern (e.g., "1. ")
-        if let range = previousLine.range(of: "^\\d+\\. ", options: .regularExpression) {
-            let prefix = String(previousLine[range])
-            let numberString = prefix.dropLast(2) // remove ". "
-            if let number = Int(numberString) {
-                // Append next number
-                let nextString = "\(number + 1). "
-                self.body += nextString
-                self.lastBodyLength += nextString.count // Update length so we don't think it's another insertion
+        // Check for numbered list pattern (e.g., "1. " or "  1. ")
+        // Regex: Start, optional whitespace (captured), digits (captured), dot, whitespace
+        // Using manual parsing for simplicity and safety without NSRegularExpression boilerplate
+        if let dotIndex = previousLine.firstIndex(of: ".") {
+            let prefix = previousLine[..<dotIndex] // "  1"
+            let trimmedPrefix = prefix.trimmingCharacters(in: .whitespaces) // "1"
+            
+            // Check if it's a number
+            if let number = Int(trimmedPrefix), number >= 0 {
+                // Check if followed by space
+                let afterDotIndex = previousLine.index(after: dotIndex)
+                if afterDotIndex < previousLine.endIndex, previousLine[afterDotIndex].isWhitespace {
+                    // It is a numbered list!
+                    
+                    // Extract indentation
+                    let indentation = previousLine.prefix(while: { $0.isWhitespace })
+                    
+                    let nextString = "\(indentation)\(number + 1). "
+                    self.body += nextString
+                    self.lastBodyLength += nextString.count
+                    return
+                }
             }
         }
+        
         // Check for bullet list pattern (e.g., "- ")
-        else if previousLine.trimmingCharacters(in: .whitespaces).starts(with: "- ") {
-            let nextString = "- "
+        if previousLine.trimmingCharacters(in: .whitespaces).starts(with: "- ") {
+            let indentation = previousLine.prefix(while: { $0.isWhitespace })
+            let nextString = "\(indentation)- "
             self.body += nextString
             self.lastBodyLength += nextString.count
         }

@@ -1,8 +1,10 @@
 import SwiftUI
+import AudioToolbox
 
 struct NewEntryView: View {
     @StateObject private var viewModel: NewEntryViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showSuccessOverlay = false
     let onSave: (JournalEntry?) -> Void
     
     init(title: String = "", body: String = "", onSave: @escaping (JournalEntry?) -> Void) {
@@ -51,6 +53,28 @@ struct NewEntryView: View {
                             .padding(.horizontal, 20)
                     }
                 }
+                
+                // Success Overlay
+                if showSuccessOverlay {
+                    Color.black.opacity(0.3).ignoresSafeArea()
+                    
+                    VStack(spacing: 16) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 80))
+                            .foregroundColor(CandidColors.text)
+                            .scaleEffect(showSuccessOverlay ? 1.0 : 0.5)
+                            .animation(.spring(response: 0.4, dampingFraction: 0.6), value: showSuccessOverlay)
+                        
+                        Text("Saved!")
+                            .font(.title2.bold())
+                            .foregroundColor(CandidColors.text)
+                    }
+                    .padding(40)
+                    .background(CandidColors.cardBackground)
+                    .cornerRadius(20)
+                    .shadow(radius: 20)
+                    .transition(.scale.combined(with: .opacity))
+                }
             }
             .navigationTitle("New Entry")
             .navigationBarTitleDisplayMode(.inline)
@@ -68,8 +92,17 @@ struct NewEntryView: View {
                         Button("Save") {
                             Task {
                                 let entry = await viewModel.saveEntry()
-                                onSave(entry)
-                                dismiss()
+                                if entry != nil {
+                                    playSuccessSound()
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                                        showSuccessOverlay = true
+                                    }
+                                    
+                                    // Delay dismissal to show animation
+                                    try? await Task.sleep(nanoseconds: 1_200_000_000) // 1.2 seconds
+                                    onSave(entry)
+                                    dismiss()
+                                }
                             }
                         }
                         .foregroundColor(CandidColors.text)
@@ -78,5 +111,14 @@ struct NewEntryView: View {
                 }
             }
         }
+    }
+    
+    private func playSuccessSound() {
+        // System sound 1322 is "Task Completed" / "Payment Success" style
+        // 1301 is "Lock"
+        // 1322 is generally used for confirmations.
+        // Also 1025 (Fanfare) or 1054 (Tri-tone)
+        // Trying 1322 for a satisfying task completion sound
+        AudioServicesPlaySystemSound(1322) 
     }
 }

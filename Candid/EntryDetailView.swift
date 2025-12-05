@@ -39,37 +39,47 @@ struct EntryDetailView: View {
     }
     
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(viewModel.entry.title)
-                .font(.title.bold())
+                .font(.system(size: CandidTypography.largeTitleSize, weight: CandidTypography.largeTitleWeight))
                 .foregroundColor(CandidColors.text)
+                .multilineTextAlignment(.leading)
             
-            HStack {
+            HStack(spacing: 12) {
                 Text(viewModel.entry.date, style: .date)
-                    .font(.callout)
+                    .font(.system(size: CandidTypography.captionSize, weight: CandidTypography.captionWeight))
                     .foregroundColor(CandidColors.secondaryText)
                 
                 Spacer()
                 
                 // Display categories
-                ForEach(viewModel.entry.categories, id: \.self) { category in
-                    Text(category)
-                        .font(.caption)
-                        .foregroundColor(CandidColors.secondaryText)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(CandidColors.tertiaryBackground)
-                        .cornerRadius(8)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.entry.categories, id: \.self) { category in
+                            Text(category.capitalized)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(CandidColors.text)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(CandidColors.background)
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(CandidColors.borderLight, lineWidth: 1)
+                                )
+                        }
+                    }
                 }
             }
         }
     }
     
     private var content: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             SelectableTextView(text: viewModel.entry.body) { selectedText in
                 viewModel.selectedText = selectedText
             }
+            .frame(minHeight: 100) // Ensure readable height even if short
             
             if let selected = viewModel.selectedText, !selected.isEmpty {
                 Button(action: {
@@ -81,17 +91,20 @@ struct EntryDetailView: View {
                     }
                 }) {
                     HStack {
-                        Image(systemName: "checkmark.shield")
+                        Image(systemName: "checkmark.shield.fill")
                         Text("Fact Check Selection")
                     }
-                    .font(.callout)
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(CandidColors.text)
-                    .padding(12)
+                    .padding()
                     .frame(maxWidth: .infinity)
-                    .background(CandidColors.tertiaryBackground)
-                    .cornerRadius(8)
+                    .background(CandidColors.cardBackground)
+                    .cornerRadius(12)
+                    .shadow(color: CandidShadows.card.color, radius: 4, x: 0, y: 2)
                 }
                 .disabled(viewModel.isFactChecking)
+                .scaleEffect(viewModel.isFactChecking ? 0.98 : 1)
+                .animation(.easeInOut, value: viewModel.isFactChecking)
             }
             
             if let error = viewModel.error {
@@ -100,21 +113,26 @@ struct EntryDetailView: View {
                     .foregroundColor(.red)
             }
         }
-        .padding(16)
-        .background(CandidColors.secondaryBackground)
-        .cornerRadius(12)
+        .padding(20)
+        .background(CandidColors.cardBackground)
+        .cornerRadius(16)
+        .shadow(color: CandidShadows.card.color, radius: 8, x: 0, y: 4)
     }
     
     private var evidenceSection: some View {
         Group {
             if !viewModel.evidence.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Evidence")
+                VStack(alignment: .leading, spacing: 16) {
+                    Label("Evidence", systemImage: "link")
                         .font(.headline)
                         .foregroundColor(CandidColors.text)
                     
-                    ForEach(viewModel.evidence) { evidence in
-                        EvidenceCard(evidence: evidence)
+                    VStack(spacing: 12) {
+                        ForEach(Array(viewModel.evidence.enumerated()), id: \.element.id) { index, evidence in
+                            EvidenceCard(evidence: evidence)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(Double(index) * 0.1), value: viewModel.evidence.count)
+                        }
                     }
                 }
             }
@@ -124,13 +142,17 @@ struct EntryDetailView: View {
     private var factCheckResultsSection: some View {
         Group {
             if !viewModel.factCheckResults.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Fact Check Results")
+                VStack(alignment: .leading, spacing: 16) {
+                    Label("Fact Checks", systemImage: "checkmark.seal")
                         .font(.headline)
                         .foregroundColor(CandidColors.text)
                     
-                    ForEach(viewModel.factCheckResults) { result in
-                        FactCheckResultCard(result: result)
+                    VStack(spacing: 12) {
+                        ForEach(Array(viewModel.factCheckResults.enumerated()), id: \.element.id) { index, result in
+                            FactCheckResultCard(result: result)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(Double(index) * 0.1), value: viewModel.factCheckResults.count)
+                        }
                     }
                 }
             }
@@ -199,7 +221,7 @@ struct EvidenceCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(evidence.claimText)
-                .font(.callout)
+                .font(.system(size: 15, weight: .medium))
                 .foregroundColor(CandidColors.text)
                 .italic()
             
@@ -215,16 +237,21 @@ struct EvidenceCard: View {
                         Image(systemName: "arrow.up.right.square")
                             .font(.caption)
                     }
-                    .foregroundColor(CandidColors.secondaryText)
+                    .foregroundColor(CandidColors.text)
                     .padding(10)
-                    .background(CandidColors.tertiaryBackground)
+                    .background(CandidColors.background)
                     .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(CandidColors.borderLight, lineWidth: 1)
+                    )
                 }
             }
         }
         .padding(16)
-        .background(CandidColors.secondaryBackground)
+        .background(CandidColors.cardBackground)
         .cornerRadius(12)
+        .shadow(color: CandidShadows.card.color, radius: 2, x: 0, y: 1)
     }
 }
 
@@ -245,30 +272,40 @@ struct FactCheckResultCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(result.claimText)
-                    .font(.callout)
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(CandidColors.text)
                     .italic()
+                    .lineLimit(2)
                 
                 Spacer()
                 
                 Text("\(result.validityScore)%")
-                    .font(.headline)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(scoreColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(scoreColor.opacity(0.1))
+                    .cornerRadius(8)
             }
             
             Text(result.reasoning)
-                .font(.caption)
+                .font(.system(size: 14))
                 .foregroundColor(CandidColors.secondaryText)
             
             if !result.evidence.isEmpty {
-                Text("\(result.sourceCount) sources found")
-                    .font(.caption2)
-                    .foregroundColor(CandidColors.secondaryText)
+                HStack {
+                    Image(systemName: "doc.text.magnifyingglass")
+                    Text("\(result.sourceCount) sources found")
+                }
+                .font(.caption)
+                .foregroundColor(CandidColors.secondaryText)
+                .padding(.top, 4)
             }
         }
         .padding(16)
-        .background(CandidColors.secondaryBackground)
+        .background(CandidColors.cardBackground)
         .cornerRadius(12)
+        .shadow(color: CandidShadows.card.color, radius: 2, x: 0, y: 1)
     }
 }
 
