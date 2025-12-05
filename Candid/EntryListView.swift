@@ -10,7 +10,25 @@ struct EntryListView: View {
                 CandidColors.background.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    SearchBar(text: $viewModel.searchText)
+                    // Custom Header
+                    VStack(spacing: 12) {
+                        HStack {
+                            Text("Candid")
+                                .font(.system(size: 34, weight: .bold))
+                                .foregroundColor(CandidColors.text)
+                            Spacer()
+                            Button(action: { showingNewEntry = true }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(CandidColors.text)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        SearchBar(text: $viewModel.searchText)
+                    }
+                    .padding(.vertical, 10)
+                    .background(CandidColors.background)
                     
                     if viewModel.isLoading && viewModel.entries.isEmpty {
                         ProgressView("Loading entries...")
@@ -22,15 +40,8 @@ struct EntryListView: View {
                     }
                 }
             }
-            .navigationTitle("Candid")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingNewEntry = true }) {
-                        Image(systemName: "plus")
-                            .foregroundColor(CandidColors.text)
-                    }
-                }
-            }
+            // Hide default navigation bar to use our custom header
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingNewEntry) {
                 NewEntryView { _ in
                     Task {
