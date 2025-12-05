@@ -2,22 +2,27 @@ import os
 import json
 from models import EntryClassificationResponse
 from typing import List, Dict
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
+import db
+
 load_dotenv()
 
-# Initialize Claude client
+# Initialize Claude async client
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 if not ANTHROPIC_API_KEY:
     raise ValueError("ANTHROPIC_API_KEY environment variable is required")
 
-client = Anthropic(api_key=ANTHROPIC_API_KEY)
+client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 MODEL = "claude-sonnet-4-20250514"
 
-def classify_entry(title: str, body: str) -> EntryClassificationResponse:
+DB = db.DataBaseDriver()
+
+
+async def classify_entry(title: str, body: str) -> EntryClassificationResponse:
     """
     Have Claude classify category of a journal.
-    Each call fetches current categories in the database, and asks Claude to attempt to use of those if well-suited enough.
+    Each call fetches current categories in the database, and asks Claude to attempt to use one of those if well-suited enough.
     
     Args:
         title: brief string with title of entry.
@@ -26,27 +31,39 @@ def classify_entry(title: str, body: str) -> EntryClassificationResponse:
     Returns:
         Dictionary with 'category' containing a single word that best suits the content of the entry.
     """
-
     
-    prompt = f"""You are analyzing a debate on: {question}
+    # Fetch existing categories from database
+    existing_categories = DB.get_all_categories()
+    category_names = [cat['name'] for cat in existing_categories]
+    
+    # Build the prompt with existing categories
+    if category_names:
+        existing_cats_str = ", ".join(category_names)
+        category_instruction = f"""EXISTING CATEGORIES in the database: [{existing_cats_str}]
 
-PRO arguments:
-{pro_text}
+IMPORTANT: If any of the existing categories above is a good fit for this entry, you MUST use it exactly as written.
+Only create a new category if none of the existing ones are relevant."""
+    else:
+        category_instruction = "No existing categories in the database yet. Create an appropriate single-word category."
+    
+    prompt = f"""You are classifying a journal entry into a category.
 
-CON arguments:
-{con_text}
+Title: {title}
 
-Generate three things (do NOT create new arguments, only synthesize existing):
-1. OVERALL SUMMARY (2-3 paragraphs): What is this debate about? Main themes?
-2. CONSENSUS VIEW (1-2 paragraphs): What do both sides agree on?
-3. TIMELINE VIEW: Chronological narrative based on arguments. Array of {{"period": "...", "description": "..."}}
+Body:
+{body}
 
-Return JSON only: {{"overall_summary": "...", "consensus_view": "...", "timeline_view": [...]}}"""
+{category_instruction}
+
+Analyze the content and determine the most appropriate single-word category that best describes this journal entry.
+If creating a new category, use lowercase single words like: personal, work, health, travel, food, fitness, relationships, finance, creative, gratitude, goals, reflection, etc.
+
+Return JSON only: {{"category": "..."}}"""
 
     try:
-        message = client.messages.create(
+        message = await client.messages.create(
             model=MODEL,
-            max_tokens=4096,
+            max_tokens=256,
             messages=[
                 {
                     "role": "user",
@@ -68,11 +85,11 @@ Return JSON only: {{"overall_summary": "...", "consensus_view": "...", "timeline
         result = json.loads(response_text)
         
         # Validate structure
-        if not all(key in result for key in ['overall_summary', 'consensus_view', 'timeline_view']):
-            raise ValueError("Missing required fields in Claude response")
+        if 'category' not in result:
+            raise ValueError("Missing 'category' field in Claude response")
         
-        if not isinstance(result['timeline_view'], list):
-            raise ValueError("timeline_view must be a list")
+        # Normalize to lowercase
+        result['category'] = result['category'].lower()
         
         return result
         

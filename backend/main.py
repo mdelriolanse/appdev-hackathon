@@ -3,8 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 import db
-from routes import  journal_entry
-#from routes import fact_checking, classification
+from routes import journal_entry, factcheck
+import uvicorn
+
 app = FastAPI()
 
 app.add_middleware(
@@ -15,5 +16,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# app.include_router(fact_checking.router)  # /fact-check
 app.include_router(journal_entry.router)
+app.include_router(factcheck.router)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

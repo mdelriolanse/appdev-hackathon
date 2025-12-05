@@ -1,39 +1,73 @@
 from fastapi import APIRouter, HTTPException, Request
 import json
 from typing import List, Optional
-from exceptions import JournalEntryError, EntryCreationError
+from exceptions import JournalEntryError, EntryCreationError, EntryNotFoundError
 import db
-from models import JournalEntryRequest, JournalEntryResponse
+from services.classification import classify_entry
+from models import (
+    JournalEntryRequest, 
+    JournalEntryResponse, 
+    CategoryResponse,
+    EvidenceResponse
+)
 
-router = APIRouter(prefix="/journal-entry", tags=["journal-entry"])
+router = APIRouter(prefix="/journal", tags=["journal"])
 
-DB =  db.DataBaseDriver()
+DB = db.DataBaseDriver()
 
-@router.post("", response_model=JournalEntryResponse)
+
+@router.post("/entry", response_model=JournalEntryResponse)
 async def create_journal_entry(entry: JournalEntryRequest):
+    """Create a new journal entry with automatic classification."""
     title = entry.title
     body = entry.body
 
     if not title or not body:
-        raise HTTPException(status_code=400, detail=f"""
-            Malformed request: Expected strings in title and body fields, got {
-                json.dumps(entry)
-            }
-        )""")
+        raise HTTPException(status_code=400, detail="Title and body are required")
 
     try:
-        # run classification pipeline
-        # category = await classify_entry(entry.body)
-        #removed category for testing purposes, later on just add it 
-        response = DB.create_entry(title, body)
+        # Classify the entry using Claude
+        classification = await classify_entry(title, body)
 
-        return JournalEntryResponse(**response)
+        if not classification or 'category' not in classification:
+            raise HTTPException(status_code=400, detail="Failed to classify entry")
+
+        # Create entry with category as a list
+        response = DB.create_entry(title, body, [classification['category']])
+
+        return JournalEntryResponse(**dict(response))
     
-    except EntryCreationError:
-        raise HTTPException(status_code=500, detail="Failed to save entry")
-        
+    except EntryCreationError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("",response_model=list[JournalEntryResponse])
+@router.get("/entries", response_model=List[JournalEntryResponse])
 async def get_all_journal_entries():
+    """Get all journal entries."""
     return DB.get_all_entries()
+
+
+@router.get("/entry/{entry_id}", response_model=JournalEntryResponse)
+async def get_journal_entry(entry_id: int):
+    """Get a single journal entry by ID."""
+    try:
+        return DB.get_entry_by_id(entry_id)
+    except EntryNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Entry {entry_id} not found")
+
+
+@router.get("/entry/{entry_id}/evidence", response_model=List[EvidenceResponse])
+async def get_entry_evidence(entry_id: int):
+    """Get all evidence records for a journal entry."""
+    try:
+        # Verify entry exists
+        DB.get_entry_by_id(entry_id)
+        return DB.get_evidence_for_entry(entry_id)
+    except EntryNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Entry {entry_id} not found")
+
+
+@router.get("/categories", response_model=List[CategoryResponse])
+async def get_all_categories():
+    """Get all categories."""
+    return DB.get_all_categories()
