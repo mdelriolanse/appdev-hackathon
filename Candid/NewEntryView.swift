@@ -3,7 +3,7 @@ import SwiftUI
 struct NewEntryView: View {
     @StateObject private var viewModel = NewEntryViewModel()
     @Environment(\.dismiss) private var dismiss
-    let onSave: () -> Void
+    let onSave: (JournalEntry?) -> Void
     
     var body: some View {
         NavigationStack {
@@ -19,12 +19,19 @@ struct NewEntryView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
                     
-                    TextEditor(text: $viewModel.content)
+                    TextEditor(text: $viewModel.body)
                         .font(.body)
                         .padding(16)
                         .background(CandidColors.secondaryBackground)
                         .cornerRadius(12)
                         .padding(20)
+                    
+                    if let error = viewModel.error {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.horizontal, 20)
+                    }
                 }
             }
             .navigationTitle("New Entry")
@@ -37,18 +44,18 @@ struct NewEntryView: View {
                     .foregroundColor(CandidColors.text)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if viewModel.isClassifying {
+                    if viewModel.isSaving {
                         ProgressView()
                     } else {
                         Button("Save") {
                             Task {
-                                await viewModel.saveEntry()
-                                onSave()
+                                let entry = await viewModel.saveEntry()
+                                onSave(entry)
                                 dismiss()
                             }
                         }
                         .foregroundColor(CandidColors.text)
-                        .disabled(viewModel.title.isEmpty || viewModel.content.isEmpty)
+                        .disabled(viewModel.title.isEmpty || viewModel.body.isEmpty)
                     }
                 }
             }

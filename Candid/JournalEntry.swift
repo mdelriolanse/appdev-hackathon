@@ -1,45 +1,88 @@
 import Foundation
 
+// MARK: - Journal Entry
+
 struct JournalEntry: Codable, Identifiable {
-    let id: String
+    let id: Int
     var title: String
-    var content: String
-    let date: Date
-    var category: String?
-    var factChecks: [FactCheck]
+    var body: String
+    let timestamp: Date
+    var categories: [String]
     
-    init(title: String, content: String, category: String? = nil) {
-        self.id = UUID().uuidString
-        self.title = title
-        self.content = content
-        self.date = Date()
-        self.category = category
-        self.factChecks = []
+    // For local display of fact checks (fetched separately)
+    var factCheckResults: [FactCheckResult]?
+    
+    enum CodingKeys: String, CodingKey {
+        case id, title, body, timestamp, categories
+    }
+    
+    // Convenience for display
+    var primaryCategory: String? {
+        categories.first
+    }
+    
+    var date: Date {
+        timestamp
     }
 }
 
-struct FactCheck: Codable, Identifiable {
-    let id: String
-    let text: String
-    let sources: [Source]
-    let date: Date
+// MARK: - Category
+
+struct Category: Codable, Identifiable {
+    let id: Int
+    let name: String
+}
+
+// MARK: - Evidence
+
+struct Evidence: Codable, Identifiable {
+    let id: Int
+    let entryId: Int
+    let claimText: String
+    let sourceTitle: String?
+    let sourceUrl: String?
     
-    init(text: String, sources: [Source]) {
-        self.id = UUID().uuidString
-        self.text = text
-        self.sources = sources
-        self.date = Date()
+    enum CodingKeys: String, CodingKey {
+        case id
+        case entryId = "entry_id"
+        case claimText = "claim_text"
+        case sourceTitle = "source_title"
+        case sourceUrl = "source_url"
     }
 }
 
-struct Source: Codable, Identifiable {
-    let id: String
+// MARK: - Fact Check Result
+
+struct FactCheckResult: Codable, Identifiable {
+    var id: String { claimText }
+    let claimText: String
+    let validityScore: Int
+    let reasoning: String
+    let evidence: [Evidence]
+    let sourceCount: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case claimText = "claim_text"
+        case validityScore = "validity_score"
+        case reasoning
+        case evidence
+        case sourceCount = "source_count"
+    }
+}
+
+// MARK: - API Request Models
+
+struct CreateEntryRequest: Codable {
     let title: String
-    let url: String
+    let body: String
+}
+
+struct FactCheckRequest: Codable {
+    let entryId: Int
+    let claimText: String
     
-    init(title: String, url: String) {
-        self.id = UUID().uuidString
-        self.title = title
-        self.url = url
+    enum CodingKeys: String, CodingKey {
+        case entryId = "entry_id"
+        case claimText = "claim_text"
     }
 }

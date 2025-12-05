@@ -1,4 +1,5 @@
 import os
+import logging
 import psycopg2
 from psycopg2 import extras
 from exceptions import EntryCreationError, EntryNotFoundError, JournalEntryError
@@ -7,6 +8,8 @@ from dotenv import load_dotenv
 from typing import List, Optional
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 def singleton(cls):
     instances = {}
@@ -29,13 +32,19 @@ class DataBaseDriver(object):
         Secures connection with PostgreSQL database for reading / writing.
         Uses environment variables for connection parameters.
         """
+        db_host = os.getenv("DB_HOST", "localhost")
+        db_port = os.getenv("DB_PORT", "5432")
+        db_name = os.getenv("DB_NAME", "postgres")
+        db_user = os.getenv("DB_USER", "postgres")
+        logger.info(f"[DB] Connecting to PostgreSQL: host={db_host}, port={db_port}, database={db_name}, user={db_user}")
         self.conn = psycopg2.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=os.getenv("DB_PORT", "5432"),
-            database=os.getenv("DB_NAME", "postgres"),
-            user=os.getenv("DB_USER", "postgres"),
+            host=db_host,
+            port=db_port,
+            database=db_name,
+            user=db_user,
             password=os.getenv("DB_PASSWORD", "")
         )
+        logger.info("[DB] PostgreSQL connection established successfully")
         self.conn.autocommit = False
         self.create_tables()
 
@@ -60,7 +69,7 @@ class DataBaseDriver(object):
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS categories (
                     id SERIAL PRIMARY KEY,
-                    name VARCHAR(30) UNIQUE NOT NULL
+                    name VARCHAR(30) UNIQUE
                 );
             """)
             
@@ -77,8 +86,8 @@ class DataBaseDriver(object):
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS evidence (
                     id SERIAL PRIMARY KEY,
-                    entry_id INTEGER REFERENCES entries(id) ON DELETE CASCADE NOT NULL,
-                    claim_text TEXT NOT NULL,
+                    entry_id INTEGER REFERENCES entries(id) ON DELETE CASCADE,
+                    claim_text TEXT,
                     source_title TEXT,
                     source_url TEXT
                 );
@@ -99,7 +108,7 @@ class DataBaseDriver(object):
             cursor = self.conn.cursor(cursor_factory=extras.RealDictCursor)
             cursor.execute("""
                 SELECT e.id, e.title, e.body, e.timestamp,
-                       COALESCE(array_agg(c.name) FILTER (WHERE c.name IS NOT NULL), '{}') as categories
+                       COALESCE(array_agg(c.name) FILTER (WHERE c.name IS NOT NULL), ARRAY[]::text[]) as categories
                 FROM entries e
                 LEFT JOIN entry_categories ec ON e.id = ec.entry_id
                 LEFT JOIN categories c ON ec.category_id = c.id
@@ -107,9 +116,11 @@ class DataBaseDriver(object):
                 ORDER BY e.timestamp DESC;
             """)
             rows = cursor.fetchall()
+            logger.info(f"[DB.get_all_entries] Retrieved {len(rows)} entries")
             return rows
 
         except psycopg2.Error as e:
+            logger.error(f"[DB.get_all_entries] Error: {e}")
             raise EntryNotFoundError(f"Failed to get all entries from database: {e}")
 
     def get_entry_by_id(self, entry_id: int):
@@ -120,7 +131,7 @@ class DataBaseDriver(object):
             cursor = self.conn.cursor(cursor_factory=extras.RealDictCursor)
             cursor.execute("""
                 SELECT e.id, e.title, e.body, e.timestamp,
-                       COALESCE(array_agg(c.name) FILTER (WHERE c.name IS NOT NULL), '{}') as categories
+                       COALESCE(array_agg(c.name) FILTER (WHERE c.name IS NOT NULL), ARRAY[]::text[]) as categories
                 FROM entries e
                 LEFT JOIN entry_categories ec ON e.id = ec.entry_id
                 LEFT JOIN categories c ON ec.category_id = c.id
@@ -130,9 +141,11 @@ class DataBaseDriver(object):
             row = cursor.fetchone()
             if not row:
                 raise EntryNotFoundError(f"Entry with id {entry_id} not found")
+            logger.info(f"[DB.get_entry_by_id] Retrieved entry {entry_id}")
             return row
 
         except psycopg2.Error as e:
+            logger.error(f"[DB.get_entry_by_id] Error: {e}")
             raise EntryNotFoundError(f"Failed to get entry from database: {e}")
 
     def create_entry(self, title: str, body: str, category_names: List[str] = None):
@@ -143,26 +156,32 @@ class DataBaseDriver(object):
         :param body: contents of the entry
         :param category_names: list of category names to associate
         """
+        logger.info(f"[DB.create_entry] Creating entry with title: {title[:50]}..., categories: {category_names}")
         try:
             time_now = datetime.datetime.now()
             cursor = self.conn.cursor(cursor_factory=extras.RealDictCursor)
             
             # Insert entry
+            logger.debug("[DB.create_entry] Inserting entry into entries table")
             cursor.execute("""
                 INSERT INTO entries (title, body, timestamp)
                 VALUES (%s, %s, %s)
                 RETURNING id, title, body, timestamp
             """, (title, body, time_now))
             entry = cursor.fetchone()
+            logger.debug(f"[DB.create_entry] Entry inserted: {entry}")
             
             if not entry:
+                logger.error("[DB.create_entry] No row returned after INSERT")
                 raise EntryCreationError("Failed to create entry: no row returned.")
             
             # Associate categories
             categories = []
             if category_names:
+                logger.debug(f"[DB.create_entry] Associating {len(category_names)} categories")
                 for cat_name in category_names:
                     cat_id = self._get_or_create_category(cursor, cat_name)
+                    logger.debug(f"[DB.create_entry] Category '{cat_name}' has id: {cat_id}")
                     cursor.execute("""
                         INSERT INTO entry_categories (entry_id, category_id)
                         VALUES (%s, %s)
@@ -170,15 +189,19 @@ class DataBaseDriver(object):
                     """, (entry['id'], cat_id))
                     categories.append(cat_name)
             
+            logger.debug("[DB.create_entry] Committing transaction")
             self.conn.commit()
             entry['categories'] = categories
+            logger.info(f"[DB.create_entry] Entry created successfully with id: {entry['id']}")
             return entry
         
         except psycopg2.IntegrityError as e:
+            logger.error(f"[DB.create_entry] IntegrityError: {e}")
             self.conn.rollback()
             raise EntryCreationError(f"Database constraint violation: {e}.")
         
         except psycopg2.Error as e:
+            logger.error(f"[DB.create_entry] psycopg2.Error: {e}")
             self.conn.rollback()
             raise EntryCreationError(f"Database error: {e}.")
 

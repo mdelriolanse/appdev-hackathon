@@ -10,7 +10,6 @@
 		615C1B3B2EE2869E00C56EB3 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615C1B312EE2869E00C56EB3 /* MainTabView.swift */; };
 		615C1B3C2EE2869E00C56EB3 /* CandidApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615C1B252EE2869E00C56EB3 /* CandidApp.swift */; };
 		615C1B3D2EE2869E00C56EB3 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615C1B282EE2869E00C56EB3 /* DesignSystem.swift */; };
-		615C1B3E2EE2869E00C56EB3 /* NewEntryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615C1B332EE2869E00C56EB3 /* NewEntryViewController.swift */; };
 		615C1B3F2EE2869E00C56EB3 /* EntryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615C1B292EE2869E00C56EB3 /* EntryDetailView.swift */; };
 		615C1B402EE2869E00C56EB3 /* PersistenceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615C1B362EE2869E00C56EB3 /* PersistenceManager.swift */; };
 		615C1B412EE2869E00C56EB3 /* EntryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615C1B2C2EE2869E00C56EB3 /* EntryListView.swift */; };
@@ -39,7 +38,6 @@
 		615C1B302EE2869E00C56EB3 /* JournalEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalEntry.swift; sourceTree = "<group>"; };
 		615C1B312EE2869E00C56EB3 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		615C1B322EE2869E00C56EB3 /* NewEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewEntryView.swift; sourceTree = "<group>"; };
-		615C1B332EE2869E00C56EB3 /* NewEntryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewEntryViewController.swift; sourceTree = "<group>"; };
 		615C1B342EE2869E00C56EB3 /* NewEntryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewEntryViewModel.swift; sourceTree = "<group>"; };
 		615C1B362EE2869E00C56EB3 /* PersistenceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -75,11 +73,10 @@
 				615C1B2B2EE2869E00C56EB3 /* EntryDetailViewModel.swift */,
 				615C1B2C2EE2869E00C56EB3 /* EntryListView.swift */,
 				615C1B2E2EE2869E00C56EB3 /* EntryListViewModel.swift */,
+				615C1B312EE2869E00C56EB3 /* MainTabView.swift */,
 				615C1B2F2EE2869E00C56EB3 /* Info.plist */,
 				615C1B302EE2869E00C56EB3 /* JournalEntry.swift */,
-				615C1B312EE2869E00C56EB3 /* MainTabView.swift */,
 				615C1B322EE2869E00C56EB3 /* NewEntryView.swift */,
-				615C1B332EE2869E00C56EB3 /* NewEntryViewController.swift */,
 				615C1B342EE2869E00C56EB3 /* NewEntryViewModel.swift */,
 				615C1B362EE2869E00C56EB3 /* PersistenceManager.swift */,
 				615C1B0F2EE285D300C56EB3 /* Candid */,
@@ -172,7 +169,6 @@
 				615C1B3B2EE2869E00C56EB3 /* MainTabView.swift in Sources */,
 				615C1B3C2EE2869E00C56EB3 /* CandidApp.swift in Sources */,
 				615C1B3D2EE2869E00C56EB3 /* DesignSystem.swift in Sources */,
-				615C1B3E2EE2869E00C56EB3 /* NewEntryViewController.swift in Sources */,
 				615C1B3F2EE2869E00C56EB3 /* EntryDetailView.swift in Sources */,
 				615C1B402EE2869E00C56EB3 /* PersistenceManager.swift in Sources */,
 				615C1B412EE2869E00C56EB3 /* EntryListView.swift in Sources */,

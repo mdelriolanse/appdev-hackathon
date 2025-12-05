@@ -12,7 +12,10 @@ struct EntryListView: View {
                 VStack(spacing: 0) {
                     SearchBar(text: $viewModel.searchText)
                     
-                    if viewModel.entries.isEmpty {
+                    if viewModel.isLoading && viewModel.entries.isEmpty {
+                        ProgressView("Loading entries...")
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if viewModel.entries.isEmpty {
                         emptyState
                     } else {
                         entryList
@@ -29,10 +32,18 @@ struct EntryListView: View {
                 }
             }
             .sheet(isPresented: $showingNewEntry) {
-                NewEntryView(onSave: {
-                    viewModel.loadEntries()
-                })
+                NewEntryView { _ in
+                    Task {
+                        await viewModel.loadEntries()
+                    }
+                }
             }
+            .refreshable {
+                await viewModel.loadEntries()
+            }
+        }
+        .task {
+            await viewModel.loadEntries()
         }
     }
     
@@ -47,6 +58,13 @@ struct EntryListView: View {
             Text("Tap + to write your first entry")
                 .font(.callout)
                 .foregroundColor(CandidColors.secondaryText)
+            
+            if let error = viewModel.error {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.top, 8)
+            }
         }
     }
     
@@ -102,7 +120,9 @@ struct EntryRow: View {
                     .font(.headline)
                     .foregroundColor(CandidColors.text)
                 Spacer()
-                if let category = entry.category {
+                
+                // Display first category
+                if let category = entry.primaryCategory {
                     Text(category)
                         .font(.caption)
                         .foregroundColor(CandidColors.secondaryText)
@@ -113,7 +133,7 @@ struct EntryRow: View {
                 }
             }
             
-            Text(entry.content)
+            Text(entry.body)
                 .font(.callout)
                 .foregroundColor(CandidColors.secondaryText)
                 .lineLimit(2)

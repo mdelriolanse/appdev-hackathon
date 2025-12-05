@@ -5,24 +5,39 @@ import Combine
 @MainActor
 class NewEntryViewModel: ObservableObject {
     @Published var title = ""
-    @Published var content = ""
-    @Published var isClassifying = false
+    @Published var body = ""
+    @Published var isSaving = false
+    @Published var error: String?
+    @Published var savedEntry: JournalEntry?
     
-    func saveEntry() async {
-        guard !title.isEmpty, !content.isEmpty else { return }
+    func saveEntry() async -> JournalEntry? {
+        guard !title.isEmpty, !body.isEmpty else { return nil }
         
-        isClassifying = true
-        var category: String?
+        isSaving = true
+        error = nil
         
         do {
-            category = try await APIService.shared.classify(text: content)
+            // Backend auto-classifies the entry
+            let entry = try await APIService.shared.createEntry(title: title, body: body)
+            savedEntry = entry
+            
+            // Cache locally for offline access
+            PersistenceManager.shared.cacheEntry(entry)
+            
+            isSaving = false
+            return entry
         } catch {
-            print("Classification failed: \(error)")
+            self.error = error.localizedDescription
+            print("Failed to create entry: \(error)")
+            isSaving = false
+            return nil
         }
-        
-        isClassifying = false
-        
-        let entry = JournalEntry(title: title, content: content, category: category)
-        PersistenceManager.shared.addEntry(entry)
+    }
+    
+    func reset() {
+        title = ""
+        body = ""
+        error = nil
+        savedEntry = nil
     }
 }
