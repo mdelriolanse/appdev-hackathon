@@ -1,9 +1,14 @@
 import SwiftUI
 
 struct NewEntryView: View {
-    @StateObject private var viewModel = NewEntryViewModel()
+    @StateObject private var viewModel: NewEntryViewModel
     @Environment(\.dismiss) private var dismiss
     let onSave: (JournalEntry?) -> Void
+    
+    init(title: String = "", body: String = "", onSave: @escaping (JournalEntry?) -> Void) {
+        _viewModel = StateObject(wrappedValue: NewEntryViewModel(title: title, body: body))
+        self.onSave = onSave
+    }
     
     var body: some View {
         NavigationStack {

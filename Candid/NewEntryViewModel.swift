@@ -10,6 +10,11 @@ class NewEntryViewModel: ObservableObject {
     @Published var error: String?
     @Published var savedEntry: JournalEntry?
     
+    init(title: String = "", body: String = "") {
+        self.title = title
+        self.body = body
+    }
+    
     func saveEntry() async -> JournalEntry? {
         guard !title.isEmpty, !body.isEmpty else { return nil }
         

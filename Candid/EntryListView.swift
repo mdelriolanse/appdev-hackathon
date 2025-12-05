@@ -3,6 +3,29 @@ import SwiftUI
 struct EntryListView: View {
     @EnvironmentObject var viewModel: EntryListViewModel
     @State private var showingNewEntry = false
+    @State private var selectedTemplate: EntryTemplate = .blank
+    
+    enum EntryTemplate {
+        case blank, recipe, reflection, list
+        
+        var title: String {
+            switch self {
+            case .blank: return ""
+            case .recipe: return "New Recipe"
+            case .reflection: return "Daily Reflection"
+            case .list: return "New List"
+            }
+        }
+        
+        var body: String {
+            switch self {
+            case .blank: return ""
+            case .recipe: return "Ingredients:\n- \n\nInstructions:\n1. "
+            case .reflection: return "What's on my mind today?\n\n\nWhat am I grateful for?\n\n"
+            case .list: return "- \n- \n- "
+            }
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -17,7 +40,13 @@ struct EntryListView: View {
                                 .font(.system(size: 34, weight: .bold))
                                 .foregroundColor(CandidColors.text)
                             Spacer()
-                            Button(action: { showingNewEntry = true }) {
+                            
+                            Menu {
+                                Button("Blank Entry", action: { openTemplate(.blank) })
+                                Button("Recipe", action: { openTemplate(.recipe) })
+                                Button("Self-Reflection", action: { openTemplate(.reflection) })
+                                Button("List", action: { openTemplate(.list) })
+                            } label: {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.system(size: 28))
                                     .foregroundColor(CandidColors.text)
@@ -43,7 +72,7 @@ struct EntryListView: View {
             // Hide default navigation bar to use our custom header
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingNewEntry) {
-                NewEntryView { _ in
+                NewEntryView(title: selectedTemplate.title, body: selectedTemplate.body) { _ in
                     Task {
                         await viewModel.loadEntries()
                     }
@@ -56,6 +85,11 @@ struct EntryListView: View {
         .task {
             await viewModel.loadEntries()
         }
+    }
+    
+    private func openTemplate(_ template: EntryTemplate) {
+        selectedTemplate = template
+        showingNewEntry = true
     }
     
     private var emptyState: some View {
