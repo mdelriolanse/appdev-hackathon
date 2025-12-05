@@ -11,20 +11,30 @@ struct NewEntryView: View {
                 CandidColors.background.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    TextField("Title", text: $viewModel.title)
-                        .font(.title2)
-                        .padding(20)
-                        .background(CandidColors.secondaryBackground)
-                        .cornerRadius(12)
+                    TextField("Entry Title", text: $viewModel.title)
+                        .font(.largeTitle.bold()) // Make title distinct
+                        .foregroundColor(CandidColors.text)
                         .padding(.horizontal, 20)
-                        .padding(.top, 16)
+                        .padding(.top, 20)
                     
-                    TextEditor(text: $viewModel.body)
-                        .font(.body)
-                        .padding(16)
-                        .background(CandidColors.secondaryBackground)
-                        .cornerRadius(12)
-                        .padding(20)
+                    ZStack(alignment: .topLeading) {
+                        TextEditor(text: $viewModel.body)
+                            .font(.body)
+                            .scrollContentBackground(.hidden)
+                            .background(Color.clear)
+                            .padding(20)
+                        
+                        // Custom placeholder for TextEditor
+                        if viewModel.body.isEmpty {
+                            Text("Start writing your thoughts here...")
+                                .font(.body)
+                                .foregroundColor(CandidColors.secondaryText.opacity(0.7))
+                                .padding(.horizontal, 24) // Match TextEditor padding
+                                .padding(.vertical, 28)
+                                .allowsHitTesting(false) // Let touches pass through to TextEditor
+                        }
+                    }
+                    .frame(maxHeight: .infinity) // Allow body to expand
                     
                     if let error = viewModel.error {
                         Text(error)

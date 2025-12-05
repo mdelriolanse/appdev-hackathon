@@ -1,11 +1,30 @@
 import SwiftUI
 
 struct CandidColors {
-    static let background = Color(hex: "FFFFFF")
-    static let secondaryBackground = Color(hex: "F5F5F5")
-    static let tertiaryBackground = Color(hex: "EDEDED")
-    static let text = Color(hex: "1A1A1A")
-    static let secondaryText = Color(hex: "666666")
+    static let background = Color(hex: "E8F5E9") // Light match green
+    static let cardBackground = Color(hex: "F1FAF1") // Pale green/white for cards
+    static let text = Color(hex: "1B5E20") // Dark green
+    static let secondaryText = Color(hex: "9E9E9E") // Gray for secondary text
+    static let borderLight = Color(hex: "E0E0E0") // Light gray border
+    static let borderDark = Color(hex: "9E9E9E") // Dark gray border
+    static let buttonBackground = Color(hex: "1B5E20") // Dark green fill
+    
+    // Legacy mapping for existing code compatibility (remapping to new scheme)
+    static let secondaryBackground = cardBackground // Used for cards
+    static let tertiaryBackground = Color(hex: "FFFFFF").opacity(0.5) // Subtle highlight
+}
+
+struct CandidTypography {
+    static let largeTitleSize: CGFloat = 28
+    static let bodySize: CGFloat = 16
+    static let captionSize: CGFloat = 14
+}
+
+struct CandidLayout {
+    static let horizontalPadding: CGFloat = 16
+    static let verticalSpacing: CGFloat = 12
+    static let cornerRadius: CGFloat = 12
+    static let borderWidth: CGFloat = 1
 }
 
 extension Color {
