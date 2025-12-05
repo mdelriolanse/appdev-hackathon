@@ -1,23 +1,40 @@
 import SwiftUI
 
 struct CategoryBlocksView: View {
+    @EnvironmentObject var viewModel: EntryListViewModel
     let categoryCounts: [String: Int]
     
     var body: some View {
-        ScrollView {
-            if categoryCounts.isEmpty {
-                emptyState
-            } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 12) {
-                    ForEach(Array(categoryCounts.sorted { $0.value > $1.value }), id: \.key) { category, count in
-                        CategoryBlock(category: category, count: count, total: categoryCounts.values.reduce(0, +))
+        VStack(spacing: 0) {
+            // Custom Header
+            HStack {
+                Text("Categories")
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundColor(CandidColors.text)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .background(CandidColors.background)
+            
+            ScrollView {
+                if categoryCounts.isEmpty {
+                    emptyState
+                } else {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 12) {
+                        ForEach(Array(categoryCounts.sorted { $0.value > $1.value }), id: \.key) { category, count in
+                            NavigationLink(destination: CategoryEntryListView(category: category, allEntries: viewModel.entries)) {
+                                CategoryBlock(category: category, count: count, total: categoryCounts.values.reduce(0, +))
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
+                    .padding(20)
                 }
-                .padding(20)
             }
         }
         .background(CandidColors.background)
-        .navigationTitle("Categories")
+        .toolbar(.hidden, for: .navigationBar)
     }
     
     private var emptyState: some View {
@@ -33,6 +50,33 @@ struct CategoryBlocksView: View {
                 .foregroundColor(CandidColors.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 100)
+    }
+}
+
+struct CategoryEntryListView: View {
+    let category: String
+    let allEntries: [JournalEntry]
+    
+    var filteredEntries: [JournalEntry] {
+        allEntries.filter { $0.categories.contains(category) }
+    }
+    
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(filteredEntries) { entry in
+                    NavigationLink(destination: EntryDetailView(entry: entry)) {
+                        EntryRow(entry: entry)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            .padding(20)
+        }
+        .background(CandidColors.background)
+        .navigationTitle(category.capitalized)
+        .navigationBarTitleDisplayMode(.large)
     }
 }
 

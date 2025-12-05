@@ -40,6 +40,9 @@ struct NewEntryView: View {
                         }
                     }
                     .frame(maxHeight: .infinity) // Allow body to expand
+                    .onChange(of: viewModel.body) { newValue in
+                        viewModel.handleBodyChange(newValue)
+                    }
                     
                     if let error = viewModel.error {
                         Text(error)

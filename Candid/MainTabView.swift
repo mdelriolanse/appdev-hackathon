@@ -15,6 +15,7 @@ struct MainTabView: View {
             
             NavigationStack {
                 CategoryBlocksView(categoryCounts: viewModel.categoryCounts)
+                    .environmentObject(viewModel)
             }
             .tabItem {
                 Label("Categories", systemImage: "square.grid.2x2")

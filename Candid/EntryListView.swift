@@ -6,14 +6,13 @@ struct EntryListView: View {
     @State private var selectedTemplate: EntryTemplate = .blank
     
     enum EntryTemplate {
-        case blank, recipe, reflection, list
+        case blank, recipe, reflection
         
         var title: String {
             switch self {
             case .blank: return ""
             case .recipe: return "New Recipe"
             case .reflection: return "Daily Reflection"
-            case .list: return "New List"
             }
         }
         
@@ -22,7 +21,6 @@ struct EntryListView: View {
             case .blank: return ""
             case .recipe: return "Ingredients:\n- \n\nInstructions:\n1. "
             case .reflection: return "What's on my mind today?\n\n\nWhat am I grateful for?\n\n"
-            case .list: return "- \n- \n- "
             }
         }
     }
@@ -45,7 +43,6 @@ struct EntryListView: View {
                                 Button("Blank Entry", action: { openTemplate(.blank) })
                                 Button("Recipe", action: { openTemplate(.recipe) })
                                 Button("Self-Reflection", action: { openTemplate(.reflection) })
-                                Button("List", action: { openTemplate(.list) })
                             } label: {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.system(size: 28))
