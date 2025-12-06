@@ -51,3 +51,12 @@ class FactCheckResponse(BaseModel):
     reasoning: str
     evidence: List[EvidenceResponse]
     source_count: int
+
+
+class CoachRequest(BaseModel):
+    title: str
+    body: str
+
+
+class CoachResponse(BaseModel):
+    prompt: str

@@ -149,6 +149,28 @@ class APIService {
         return try decoder.decode(FactCheckResult.self, from: data)
     }
     
+    // MARK: - Journaling Coach
+    
+    /// Get a journaling coach prompt based on the current entry
+    func getCoachPrompt(title: String, body: String) async throws -> String {
+        guard let url = URL(string: "\(baseURL)/coach") else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let requestBody = CoachRequest(title: title, body: body)
+        request.httpBody = try encoder.encode(requestBody)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validateResponse(response)
+        
+        let coachResponse = try decoder.decode(CoachResponse.self, from: data)
+        return coachResponse.prompt
+    }
+    
     // MARK: - Helpers
     
     private func validateResponse(_ response: URLResponse) throws {

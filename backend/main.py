@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 import logging
 import db
-from routes import journal_entry, factcheck
+from routes import journal_entry, factcheck, coach
 import uvicorn
 
 # Configure logging
@@ -27,6 +27,7 @@ app.add_middleware(
 
 app.include_router(journal_entry.router)
 app.include_router(factcheck.router)
+app.include_router(coach.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

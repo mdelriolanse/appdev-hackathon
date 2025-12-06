@@ -10,6 +10,10 @@ class NewEntryViewModel: ObservableObject {
     @Published var error: String?
     @Published var savedEntry: JournalEntry?
     
+    @Published var coachPrompt: String?
+    @Published var isFetchingCoach = false
+    @Published var coachError: String?
+    
     private var lastBodyLength: Int = 0
     
     init(title: String = "", body: String = "") {
@@ -93,10 +97,36 @@ class NewEntryViewModel: ObservableObject {
         }
     }
     
+    func fetchCoachPrompt() async {
+        isFetchingCoach = true
+        coachError = nil
+        
+        do {
+            let prompt = try await APIService.shared.getCoachPrompt(title: title, body: body)
+            coachPrompt = prompt
+        } catch {
+            self.coachError = error.localizedDescription
+            print("Failed to fetch coach prompt: \(error)")
+        }
+        
+        isFetchingCoach = false
+    }
+    
+    func insertCoachPrompt(_ prompt: String) {
+        body += "\n\(prompt)\n"
+        coachPrompt = nil
+    }
+    
+    func dismissCoachPrompt() {
+        coachPrompt = nil
+    }
+    
     func reset() {
         title = ""
         body = ""
         error = nil
         savedEntry = nil
+        coachPrompt = nil
+        coachError = nil
     }
 }

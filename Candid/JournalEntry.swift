@@ -86,3 +86,12 @@ struct FactCheckRequest: Codable {
         case claimText = "claim_text"
     }
 }
+
+struct CoachRequest: Codable {
+    let title: String
+    let body: String
+}
+
+struct CoachResponse: Codable {
+    let prompt: String
+}

@@ -5,6 +5,7 @@ struct NewEntryView: View {
     @StateObject private var viewModel: NewEntryViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showSuccessOverlay = false
+    @State private var coachBannerTask: Task<Void, Never>?
     let onSave: (JournalEntry?) -> Void
     
     init(title: String = "", body: String = "", onSave: @escaping (JournalEntry?) -> Void) {
@@ -24,22 +25,35 @@ struct NewEntryView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 20)
                     
+                    // Coach Banner
+                    if let prompt = viewModel.coachPrompt {
+                        CoachBanner(prompt: prompt) {
+                            viewModel.insertCoachPrompt(prompt)
+                            coachBannerTask?.cancel()
+                        } onDismiss: {
+                            viewModel.dismissCoachPrompt()
+                            coachBannerTask?.cancel()
+                        }
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: viewModel.coachPrompt)
+                    }
+                    
                     ZStack(alignment: .topLeading) {
                         TextEditor(text: $viewModel.body)
                             .font(.body)
                             .scrollContentBackground(.hidden)
                             .background(Color.clear)
                             .padding(20)
-                        
-                        // Custom placeholder for TextEditor
-                        if viewModel.body.isEmpty {
-                            Text("Start writing your thoughts here...")
-                                .font(.body)
-                                .foregroundColor(CandidColors.secondaryText.opacity(0.7))
-                                .padding(.horizontal, 24) // Match TextEditor padding
-                                .padding(.vertical, 28)
-                                .allowsHitTesting(false) // Let touches pass through to TextEditor
-                        }
+                            
+                            // Custom placeholder for TextEditor
+                            if viewModel.body.isEmpty {
+                                Text("Start writing your thoughts here...")
+                                    .font(.body)
+                                    .foregroundColor(CandidColors.secondaryText.opacity(0.7))
+                                    .padding(.horizontal, 24) // Match TextEditor padding
+                                    .padding(.vertical, 28)
+                                    .allowsHitTesting(false) // Let touches pass through to TextEditor
+                            }
                     }
                     .frame(maxHeight: .infinity) // Allow body to expand
                     .onChange(of: viewModel.body) { newValue in
@@ -48,6 +62,13 @@ struct NewEntryView: View {
                     
                     if let error = viewModel.error {
                         Text(error)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.horizontal, 20)
+                    }
+                    
+                    if let coachError = viewModel.coachError {
+                        Text(coachError)
                             .font(.caption)
                             .foregroundColor(.red)
                             .padding(.horizontal, 20)
@@ -109,7 +130,29 @@ struct NewEntryView: View {
                         .disabled(viewModel.title.isEmpty || viewModel.body.isEmpty)
                     }
                 }
+                ToolbarItem(placement: .keyboard) {
+                    HStack {
+                        Spacer()
+                        CoachButton(isLoading: viewModel.isFetchingCoach) {
+                            Task {
+                                await viewModel.fetchCoachPrompt()
+                                
+                                // Auto-dismiss after 7 seconds
+                                coachBannerTask?.cancel()
+                                coachBannerTask = Task {
+                                    try? await Task.sleep(nanoseconds: 7_000_000_000)
+                                    await MainActor.run {
+                                        viewModel.dismissCoachPrompt()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
+        }
+        .onDisappear {
+            coachBannerTask?.cancel()
         }
     }
     
