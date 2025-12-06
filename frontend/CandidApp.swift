@@ -2,46 +2,62 @@ import SwiftUI
 
 @main
 struct CandidApp: App {
+    var body: some Scene {
+        WindowGroup {
+            RootView()
+        }
+    }
+}
+
+struct RootView: View {
     @State private var dailyQuote = DailyQuote.getTodaysQuote()
     @State private var showQuote = true
     
-    var body: some Scene {
-        WindowGroup {
-            ZStack {
-                MainTabView()
-                
-                if showQuote {
-                    VStack {
-                        Spacer()
-                        DailyQuoteBanner(quote: dailyQuote) {
-                            withAnimation {
-                                showQuote = false
-                            }
-                        }
-                        .padding(.bottom, 90)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+    var body: some View {
+        ZStack {
+            // Main app content
+            MainTabView()
+            
+            // Quote overlay
+            if showQuote {
+                FullScreenQuoteView(quote: dailyQuote) {
+                    withAnimation(.easeOut(duration: 0.8)) {
+                        showQuote = false
                     }
                 }
+                .transition(.opacity)
+                .zIndex(1)
             }
         }
     }
 }
 
-struct DailyQuoteBanner: View {
+struct FullScreenQuoteView: View {
     let quote: String
     let onDismiss: () -> Void
     
     var body: some View {
-        Text(quote)
-            .font(.callout)
-            .foregroundColor(CandidColors.text)
-            .multilineTextAlignment(.center)
-            .padding(16)
-            .background(CandidColors.secondaryBackground.opacity(0.95))
-            .cornerRadius(12)
-            .padding(.horizontal, 20)
-            .onTapGesture {
-                onDismiss()
+        ZStack {
+            CandidColors.background.ignoresSafeArea()
+            
+            VStack {
+                Spacer()
+                Text(quote)
+                    .font(.title2)
+                    .fontWeight(.medium)
+                    .foregroundColor(CandidColors.text)
+                    .multilineTextAlignment(.center)
+                    .padding(32)
+                Spacer()
+                Text("Tap to continue")
+                    .font(.caption)
+                    .foregroundColor(CandidColors.secondaryText)
+                    .padding(.bottom, 50)
             }
+        }
+        .contentShape(Rectangle()) // Make entire screen tappable
+        .onTapGesture {
+            onDismiss()
+        }
     }
 }

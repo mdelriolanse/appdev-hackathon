@@ -3,6 +3,27 @@ import SwiftUI
 struct EntryListView: View {
     @EnvironmentObject var viewModel: EntryListViewModel
     @State private var showingNewEntry = false
+    @State private var selectedTemplate: EntryTemplate = .blank
+    
+    enum EntryTemplate {
+        case blank, recipe, reflection
+        
+        var title: String {
+            switch self {
+            case .blank: return ""
+            case .recipe: return "New Recipe"
+            case .reflection: return "Daily Reflection"
+            }
+        }
+        
+        var body: String {
+            switch self {
+            case .blank: return ""
+            case .recipe: return "Ingredients:\n- \n\nInstructions:\n1. "
+            case .reflection: return "What's on my mind today?\n\n\nWhat am I grateful for?\n\n"
+            }
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -10,43 +31,85 @@ struct EntryListView: View {
                 CandidColors.background.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    SearchBar(text: $viewModel.searchText)
+                    // Custom Header
+                    VStack(spacing: 12) {
+                        HStack {
+                            Text("Candid")
+                                .font(.system(size: 34, weight: .bold))
+                                .foregroundColor(CandidColors.text)
+                            Spacer()
+                            
+                            Menu {
+                                Button("Blank Entry", action: { openTemplate(.blank) })
+                                Button("Recipe", action: { openTemplate(.recipe) })
+                                Button("Self-Reflection", action: { openTemplate(.reflection) })
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(CandidColors.text)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        SearchBar(text: $viewModel.searchText)
+                    }
+                    .padding(.vertical, 10)
+                    .background(CandidColors.background)
                     
-                    if viewModel.entries.isEmpty {
+                    if viewModel.isLoading && viewModel.entries.isEmpty {
+                        ProgressView("Loading entries...")
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if viewModel.entries.isEmpty {
                         emptyState
                     } else {
                         entryList
                     }
                 }
             }
-            .navigationTitle("Candid")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingNewEntry = true }) {
-                        Image(systemName: "plus")
-                            .foregroundColor(CandidColors.text)
+            // Hide default navigation bar to use our custom header
+            .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $showingNewEntry) {
+                NewEntryView(title: selectedTemplate.title, body: selectedTemplate.body) { _ in
+                    Task {
+                        await viewModel.loadEntries()
                     }
                 }
             }
-            .sheet(isPresented: $showingNewEntry) {
-                NewEntryView(onSave: {
-                    viewModel.loadEntries()
-                })
+            .refreshable {
+                await viewModel.loadEntries()
             }
         }
+        .task {
+            await viewModel.loadEntries()
+        }
+    }
+    
+    private func openTemplate(_ template: EntryTemplate) {
+        selectedTemplate = template
+        showingNewEntry = true
     }
     
     private var emptyState: some View {
         VStack(spacing: 16) {
             Image(systemName: "book.closed")
-                .font(.system(size: 48))
-                .foregroundColor(CandidColors.secondaryText)
+                .font(.system(size: 60))
+                .foregroundColor(CandidColors.secondaryText.opacity(0.5))
+                .symbolEffect(.bounce, value: showingNewEntry)
+            
             Text("No entries yet")
-                .font(.title2)
+                .font(.system(size: 20, weight: CandidTypography.bodyWeight))
                 .foregroundColor(CandidColors.text)
+            
             Text("Tap + to write your first entry")
-                .font(.callout)
+                .font(.system(size: CandidTypography.bodySize, weight: CandidTypography.bodyWeight))
                 .foregroundColor(CandidColors.secondaryText)
+            
+            if let error = viewModel.error {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.top, 8)
+            }
         }
     }
     
@@ -56,12 +119,14 @@ struct EntryListView: View {
                 ForEach(viewModel.filteredEntries) { entry in
                     NavigationLink(destination: EntryDetailView(entry: entry)) {
                         EntryRow(entry: entry)
+                            .cardStyle()
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(ScaleButtonStyle())
                 }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 }
@@ -76,6 +141,7 @@ struct SearchBar: View {
             
             TextField("Search entries...", text: $text)
                 .foregroundColor(CandidColors.text)
+                .font(.system(size: CandidTypography.bodySize))
             
             if !text.isEmpty {
                 Button(action: { text = "" }) {
@@ -85,8 +151,9 @@ struct SearchBar: View {
             }
         }
         .padding(12)
-        .background(CandidColors.secondaryBackground)
+        .background(CandidColors.cardBackground)
         .cornerRadius(10)
+        .shadow(color: CandidShadows.card.color, radius: 2, x: 0, y: 1)
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
     }
@@ -99,31 +166,37 @@ struct EntryRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(entry.title)
-                    .font(.headline)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(CandidColors.text)
                 Spacer()
-                if let category = entry.category {
-                    Text(category)
-                        .font(.caption)
-                        .foregroundColor(CandidColors.secondaryText)
+                
+                // Display first category
+                if let category = entry.primaryCategory {
+                    Text(category.capitalized)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(CandidColors.text)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(CandidColors.tertiaryBackground)
-                        .cornerRadius(8)
+                        .background(CandidColors.background)
+                        .cornerRadius(6)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(CandidColors.borderLight, lineWidth: 0.5)
+                        )
                 }
             }
             
-            Text(entry.content)
-                .font(.callout)
+            Text(entry.body)
+                .font(.system(size: CandidTypography.bodySize))
                 .foregroundColor(CandidColors.secondaryText)
                 .lineLimit(2)
+                .padding(.top, 2)
             
             Text(entry.date, style: .date)
-                .font(.caption)
-                .foregroundColor(CandidColors.secondaryText)
+                .font(.system(size: 12))
+                .foregroundColor(CandidColors.secondaryText.opacity(0.8))
+                .padding(.top, 4)
         }
         .padding(16)
-        .background(CandidColors.secondaryBackground)
-        .cornerRadius(12)
     }
 }
