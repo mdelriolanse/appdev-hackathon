@@ -1,14 +1,11 @@
 import os
 import json
 import re
-import logging
 from typing import List, Dict, Optional
 from anthropic import Anthropic
 from tavily import TavilyClient
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-
-logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -48,8 +45,6 @@ def extract_core_claim(claim_text: str) -> str:
     Returns:
         Extracted claim in 2 sentences or less
     """
-    logger.info(f"extract_core_claim called with: '{claim_text}'")
-    
     prompt = f"""Extract the core verifiable claim from this text. Focus on factual statements that can be researched and verified, not opinions or rhetoric.
 
 Text: {claim_text}
@@ -73,7 +68,6 @@ If the text contains no verifiable factual claims (only opinions, insults, emoti
         )
         
         claim = message.content[0].text.strip()
-        logger.info(f"Extracted claim: '{claim}'")
         return claim
         
     except Exception as e:
@@ -104,10 +98,6 @@ def search_for_evidence(claim: str) -> List[Dict]:
             results = response
         else:
             results = []
-        
-        logger.info(f"Search returned {len(results)} results")
-        if results:
-            logger.info(f"First result title: '{results[0].get('title', 'N/A')}'")
         
         return results
         
@@ -265,8 +255,6 @@ def factcheck_claim(claim_text: str) -> FactCheckVerdict:
     Returns:
         FactCheckVerdict with fact-checking results
     """
-    logger.info(f"factcheck_claim called with: '{claim_text}'")
-    
     try:
         # Step 1: Extract core claim
         extracted_claim = extract_core_claim(claim_text)
